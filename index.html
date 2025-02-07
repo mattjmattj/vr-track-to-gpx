@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Convertisseur Virtual Regatta vers GPX</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script>
+        function convert(vr) {
+            if (vr.rc !== 'ok') {
+                throw new Error('Le code de retour de getboatinfos (rc) doit être "ok"');
+            }
+            if (typeof vr.res.track.track == 'undefined') {
+                throw new Error('Le retour de getboatinfos doit contenir les infos de "track"');
+            }
+
+            return `<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+                <gpx xmlns="http://www.topografix.com/GPX/1/1" creator="byHand" version="1.1" 
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                    xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+                
+                <metadata>
+                    <desc>Trace Virtual Regatta convertie en GPX</desc>
+                </metadata>
+                <trk>
+                    <trkseg>
+                        ${
+                            vr.res.track.track.map((point) => `
+                                <trkpt lat="${point.lat}" lon="${point.lon}">
+                                    <time>${(new Date(point.ts)).toISOString()}</time>
+                                    <cmt>${point.tag}</cmt>
+                                </trkpt>`)
+                                .join("\n")
+                        }
+                    </trkseg>
+                </trk>
+            </gpx>`;
+            
+        }
+
+        vrTrackPointToGPX = (point) => `<trkpt>
+            <time>${point.ts}</time>
+            <lat>${point.lat}</lat>
+            <lon>${point.lon}</lon>
+            <cmt>${point.tag}</cmt>
+        </trkpt>`;
+    </script>
+</head>
+<body>
+    <form id="conversionForm">
+        <div class="form-group">
+            <label for="jsonInput">Paste Virtual Regatta JSON here:</label>
+            <textarea class="form-control" id="jsonInput" rows="10"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="gpxOutput">GPX output:</label>
+            <textarea class="form-control" id="gpxOutput" readonly rows="10"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Convert</button>
+    </form>
+
+    <script>
+        document.getElementById('conversionForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const jsonInput = document.getElementById('jsonInput').value;
+            try {
+                const virtualRegatta = JSON.parse(jsonInput);
+                const gpxOutput = document.getElementById('gpxOutput');
+                gpxOutput.value = convert(virtualRegatta);
+            } catch (error) {
+                console.error(error);
+                alert(error);
+            }
+        });
+    </script>
+</body>
+</html>
+
